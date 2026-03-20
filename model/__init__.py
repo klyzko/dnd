@@ -1,4 +1,4 @@
-# models/__init__.py
+# shemas/__init__.py
 from .users import User
 from .tasks import Task
 from .roles import Role
