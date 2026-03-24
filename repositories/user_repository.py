@@ -1,6 +1,6 @@
-from app.models.users import UserCreate
+from dnd.models.users import UserCreate
 from fastapi import Depends, APIRouter, HTTPException
-from app.db.user_crud import create_user
+from dnd.db.user_crud import create_user
 
 router = APIRouter()
 

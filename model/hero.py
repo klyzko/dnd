@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from app.db.base import Base
+from dnd.db.base import Base
 from typing import Optional
 
 
