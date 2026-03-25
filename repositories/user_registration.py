@@ -8,5 +8,4 @@ router = APIRouter()
 
 @router.post("/auth/register")
 async def registration( user: UserCreate, db: AsyncSession = Depends(get_db)):
-    await create_user(db,user.username, user.email, user.password)
-
+    await create_user(db,user.email,user.username,user.password)
