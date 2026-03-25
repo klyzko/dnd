@@ -2,6 +2,7 @@ from sqlalchemy import String, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from dnd.db.base import Base
 from typing import Optional, List
+from dnd.model.user_roles import user_roles
 
 
 
@@ -13,8 +14,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    hero: Mapped[Optional["Hero"] ] = relationship(back_populates="user", uselist=False)
-    tasks: Mapped[List["Task"]] = relationship(back_populates="user",cascade="all, delete-orphan")
-    roles: Mapped[List["Role"]] = relationship(secondary="user_roles", back_populates="users")
+    hero: Mapped[Optional["Hero"]] = relationship('Hero',back_populates="user", uselist=False)
+    tasks: Mapped[List["Task"]] = relationship("Task",back_populates="user",cascade="all, delete-orphan")
+    roles: Mapped[List["Role"]] = relationship("Role",secondary=user_roles, back_populates="users")
 
 

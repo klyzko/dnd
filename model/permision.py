@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String,ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column,relationship
 from dnd.db.base import Base
 from typing import List
-
+from dnd.model.role_permissions import permision_roles
 
 class Permision(Base):
     __tablename__ = 'permision'
@@ -13,4 +13,4 @@ class Permision(Base):
     action: Mapped[str] = mapped_column(String(255), nullable=False)  # например: 'create', 'read', 'update', 'delete'
 
     # Связи
-    roles:Mapped[List['Role']] = relationship("permision_roles", back_populates="permission")
+    roles:Mapped[List['Role']] = relationship("Role", secondary=permision_roles, back_populates="permision")

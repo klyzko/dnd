@@ -2,6 +2,8 @@ from sqlalchemy import String, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column,relationship
 from dnd.db.base import Base
 from typing import List
+from dnd.model.user_roles import user_roles
+from dnd.model.role_permissions import permision_roles
 
 import enum
 
@@ -16,5 +18,5 @@ class Role(Base):
     # Используем sqlalchemy.Enum для хранения значений из Name_role
     name_role: Mapped[Name_role] = mapped_column(Enum(Name_role, values_callable=lambda obj: [e.value for e in obj]), unique=True, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True) # Используем Union type для nullable полей
-    user: Mapped[List["User"]] = relationship( secondary="user_roles", back_populates="roles")
-    permision: Mapped[List["Permision"]] = relationship(secondary="permision_roles", back_populates="roles")
+    users: Mapped[List["User"]] = relationship( 'User',secondary=user_roles, back_populates="roles")
+    permision: Mapped[List["Permision"]] = relationship("Permision",secondary=permision_roles, back_populates="roles")

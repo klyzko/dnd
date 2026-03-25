@@ -1,5 +1,5 @@
-from app.models.tasks import Task
-from app.models.tasks import UserCreate
+from dnd.shemas.tasks import Task
+from dnd.shemas.users import UserCreate
 
 
 __all__ = (Task,UserCreate)
