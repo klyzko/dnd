@@ -13,10 +13,10 @@ from dnd.db.base import Base
 from dnd.db.session import DATABASE_URL
 from dnd.model.hero import Hero
 from dnd.model.permision import Permision
-from dnd.model.role_permissions import RolePermissions
+from dnd.model.role_permissions import permision_roles
 from dnd.model.roles import Role
 from dnd.model.tasks import Task
-from dnd.model.user_roles import UserRole
+from dnd.model.user_roles import user_roles
 from dnd.model.users import User
 
 # this is the Alembic Config object, which provides

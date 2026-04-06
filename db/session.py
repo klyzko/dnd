@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from dnd.core.config import settings
+import redis
 
 
 DATABASE_URL = settings.get_db_url()
@@ -8,3 +9,6 @@ DATABASE_URL = settings.get_db_url()
 engine = create_async_engine(url=DATABASE_URL)
 # Создаем фабрику сессий для взаимодействия с базой данных
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
+
+
+
