@@ -1,5 +1,8 @@
 import os
 import sys
+from dnd.db.depend_redis import lifespan
+from dnd.api import users
+from dnd.api import tasks
 
 # Добавляем корневую директорию проекта в sys.path
 # Это нужно для того, чтобы Python мог найти пакет 'app'
@@ -9,8 +12,8 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from fastapi import FastAPI
-from dnd.model.tasks import Task
-from dnd.repositories import user_registration
+#from dnd.model.tasks import Task
+#from dnd.repositories import user_registration
 
 
 import uvicorn
@@ -19,7 +22,8 @@ import uvicorn
 app = FastAPI(
     title="Smart Todo Planner",
     description="Умный планировщик задач с AI и Telegram",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 def start_app():
     uvicorn.run(app='dnd.main:app', host="0.0.0.0", port=8000, reload=True)
@@ -27,9 +31,9 @@ def start_app():
 #app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
 #app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
 #app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
-#app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
-#app.include_router(users.router, prefix="/api/users", tags=["users"])
-app.include_router(user_registration.router, prefix="/api/users", tags=["users"])
+app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
+app.include_router(users.router, prefix="/api/users", tags=["users"])
+#app.include_router(user_registration.router, prefix="/api/users", tags=["users"])
 @app.post("/")
 async def root():
     return {

@@ -3,8 +3,11 @@ from shemas.users import UserReqwest,UserCreate
 from db.depend import get_db
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from db.user_crud import create_user,get_user_by_email
-from dependencies import jwt
+from dependencies.jwt import token as jwts
 from fastapi.params import Query
+from db.depend_redis import get_redis
+import redis.asyncio as redis
+
 
 
 
@@ -27,13 +30,13 @@ async def register_user(
         raise HTTPException(status_code=400, detail="User creation failed")
 
     try:
-        access_token = await jwt.create_access_token(db_user.id)
-        refresh_token = await jwt.create_refresh_token(db_user.id)
+        access_token = await jwts.create_access_token(db_user.id)
+        refresh_token = await jwts.create_refresh_token(db_user.id)
 
         # Для веба - устанавливаем куки
         if client_type == "web":
-            await jwt.set_cookie(response, access_token, 'access_token')
-            await jwt.set_cookie(response, refresh_token, 'refresh_token')
+            await jwts.set_cookie(response, access_token, 'access_token')
+            await jwts.set_cookie(response, refresh_token, 'refresh_token')
             return status.HTTP_201_CREATED
 
         # Для мобилки - возвращаем токены в теле ответа
@@ -64,13 +67,13 @@ async def login(user: UserReqwest,
             raise HTTPException(status_code=404, detail="User not found")
         if not db_user.verify_password(user.password,db_user.password):
             raise HTTPException(status_code=404, detail="Incorrect password")
-        access_token = await jwt.create_access_token(db_user.id)
-        refresh_token = await jwt.create_refresh_token(db_user.id)
+        access_token = await jwts.create_access_token(db_user.id)
+        refresh_token = await jwts.create_refresh_token(db_user.id)
 
         # Для веба - устанавливаем куки
         if client_type == "web":
-            await jwt.set_cookie(response, access_token, 'access_token')
-            await jwt.set_cookie(response, refresh_token, 'refresh_token')
+            await jwts.set_cookie(response, access_token, 'access_token')
+            await jwts.set_cookie(response, refresh_token, 'refresh_token')
             return status.HTTP_201_CREATED
 
         # Для мобилки - возвращаем токены в теле ответа
@@ -91,10 +94,20 @@ async def login(user: UserReqwest,
 async def logout(
         response: Response,
         client_type: str = Query("web", description="web или mobile"),
-        token: str = Depends(jwt.get_token),
+        token: str = Depends(jwts.get_token()),
+        token_refresh = Depends(jwts.get_token(jwts.typs_token.refresh_token)),
+        red: redis.Redis = Depends(get_redis),
 
 ):
-    token
+    token_verified = await jwts.verify_token(token)
+    if token_verified is not None:
+        jti = token_verified.get('jti')
+        await  jwts.get_blacklist_token(jti,red)
+
+    token_verified_refresh = await jwts.verify_token(token_refresh)
+    if token_verified_refresh is not None:
+        jti_ref = token_verified_refresh.get('jti')
+        await  jwts.get_blacklist_token(jti_ref,red)
 
     if client_type == "web":
         # Просто удаляем куки на клиенте
@@ -104,3 +117,5 @@ async def logout(
 
     # Для мобилки - просто говорим клиенту удалить токены
     return {"message": "Please delete stored tokens on client side"}
+
+

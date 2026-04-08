@@ -8,12 +8,13 @@ from model.users import User
 from datetime import datetime,timedelta,timezone
 from dnd.db.user_crud import get_user_rolepermissions
 from dnd.core.config import settings
-from fastapi import HTTPException,Depends,Request,Response
+from fastapi import HTTPException,Depends,Request,Response,Header
 from typing import Optional
 from dnd.core.setting import oauth2_scheme
 import redis.asyncio as redis
 import time
 import enum
+from db.depend_redis import get_redis
 
 
 class typs_token(enum.Enum):
@@ -30,6 +31,7 @@ async def create_access_token(id):
     Создание JWT токена со всеми стандартными полями
 
     """
+
     async for db in get_db():  # ← используем async for для асинхронного генератора
         try:
             user = await get_user_rolepermissions(db, id)
@@ -40,6 +42,8 @@ async def create_access_token(id):
         finally:
             # Сессия автоматически закроется в get_db() через finally
             pass
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
     now = datetime.now(timezone.utc)
     ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
     expire = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -70,6 +74,8 @@ async def create_access_token(id):
     access_token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
 
     return access_token
+
+
 async def create_refresh_token(id):
     """
     Создание JWT токена со всеми стандартными полями
@@ -85,6 +91,8 @@ async def create_refresh_token(id):
         finally:
             # Сессия автоматически закроется в get_db() через finally
             pass
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
     now = datetime.now(timezone.utc)
     REFRESH_TOKEN_EXPIRE_MINUTES = settings.refresh_token_expire_days
     expire = now + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
@@ -107,75 +115,78 @@ async def create_refresh_token(id):
     SECRET_KEY = settings.secret_key
     ALGORITHM = settings.algorithm
     access_token = jwt.encode(token_data, SECRET_KEY, algorithm=ALGORITHM)
+    return access_token
 
 #установка в черный список
-async def set_blacklist_token(red: redis.Redis, token:str):
+async def set_blacklist_token(red: redis.Redis , token:str):
     try:
-        ver_token = verify_token(token)
-        key = ver_token.get('jti')
-        ttl = ver_token.get('exp') - int(time.time())
-        await red.set(key, ver_token,ex=ttl)
+        ver_token = await verify_token(token)
+        if ver_token:
+            key = ver_token.get('jti')
+            ttl = ver_token.get('exp') - int(time.time())
+            await red.set(key, "blacklisted",ex=ttl)
     except Exception as e:
         print("The token's time is up")
 
 
-async def get_blacklist_token(jti,red: redis.Redis):
+async def get_blacklist_token(jti,red: redis.Redis ):
     return await red.get(jti) is not None
 
 
 async def verify_token(token:str):
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        if payload['exp'] < datetime.now(timezone.utc):
-            return HTTPException(status_code=401, detail='Token expired')
+        if payload['exp'] < datetime.now(timezone.utc).timestamp():
+            return None
         return payload
     except JWTError:
 
-        raise HTTPException(status_code=401, detail="Token expired")
+        return None
 
 
-async def get_token_from_header(
-        token: Optional[str] = Depends(oauth2_scheme)
-) -> Optional[str]:
-    """Получить токен из Authorization header"""
-    return token
+#async def get_token_from_header(
+       # token: Optional[str] = Depends(oauth2_scheme)
+#) -> Optional[str]:
+   # """Получить токен из Authorization header"""
+   # return token
 
 
-async def get_token_from_cookie(
-        request: Request
-) -> Optional[str]:
-    """Получить токен из куки"""
-    token = request.cookies.get("access_token")
-    if token and token.startswith("Bearer "):
-        token = token[7:]
-    return token
+#async def get_access_token_from_cookie(
+        #request: Request
+#) -> Optional[str]:
+   # """Получить токен из куки"""
+    ##token = request.cookies.get("access_token")
+    #if token and token.startswith("Bearer "):
+        #oken = token[7:]
+    #return token
+
+#async def get_token_from_cookie(request: Request, typs: typs_token) -> Optional[str]:
+    #token = request.cookies.get(typs.value)
+    #if token and token.startswith("Bearer "):
+        #token = token[7:]
+    #return token
 
 
 # Зависимость 2: Универсальное получение токена
-async def get_token(
-        token_from_header: Optional[str] = Depends(get_token_from_header),
-        token_from_cookie: Optional[str] = Depends(get_token_from_cookie),
-        prefer_header: bool = True  # Приоритет header'а
-) -> str:
-    """
-    Универсальная зависимость для получения токена
-    Сначала пробует header, потом cookie
-    """
-    token = None
+def get_token(token_type: typs_token = typs_token.access_token):
+    """Синхронная фабрика зависимостей - оптимально для FastAPI"""
 
-    if prefer_header:
-        token = token_from_header or token_from_cookie
-    else:
-        token = token_from_cookie or token_from_header
+    def _get_token(
+            request: Request,
+            authorization: Optional[str] = Header(None)
+    ) -> Optional[str]:
+        # Header
+        if authorization and authorization.startswith("Bearer "):
+            return authorization[7:]
 
-    if not token:
-        raise HTTPException(
-            status_code=401,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+        # Cookie
+        cookie_token = request.cookies.get(token_type.value)
+        if cookie_token and cookie_token.startswith("Bearer "):
+            return cookie_token[7:]
 
-    return token
+        return None
+
+    return _get_token
 
 
 async def set_cookie(response: Response, token: str, typs: typs_token):
