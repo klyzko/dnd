@@ -1,8 +1,8 @@
 
-from dependencies.jwt import token as jwts
+from dnd.dependencies.jwt import token as jwts
 from fastapi import Depends, HTTPException,Response
 import redis.asyncio as redis
-from db.depend_redis import get_redis
+from dnd.db.depend_redis import get_redis
 
 
 async def refresh_verifide_token(

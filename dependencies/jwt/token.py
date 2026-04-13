@@ -2,9 +2,9 @@ import uuid
 from jose import JWTError, jwt
 from dnd.db.depend import get_db
 from dnd.shemas.token import AccessTokenPayload
-from urllib3 import request
+#from urllib3 import request
 
-from model.users import User
+#from model.users import User
 from datetime import datetime,timedelta,timezone
 from dnd.db.user_crud import get_user_rolepermissions
 from dnd.core.config import settings
@@ -14,7 +14,7 @@ from dnd.core.setting import oauth2_scheme
 import redis.asyncio as redis
 import time
 import enum
-from db.depend_redis import get_redis
+#from db.depend_redis import get_redis
 
 
 class typs_token(enum.Enum):

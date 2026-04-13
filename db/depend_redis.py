@@ -1,6 +1,6 @@
 import redis.asyncio as redis
 from contextlib import asynccontextmanager
-from core.config import settings
+from dnd.core.config import settings
 from fastapi import FastAPI
 
 
