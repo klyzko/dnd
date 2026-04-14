@@ -1,11 +1,11 @@
 from fastapi import APIRouter,Depends,status,Response,HTTPException
-from shemas.users import UserReqwest,UserCreate
-from db.depend import get_db
+from dnd.shemas.users import UserReqwest,UserCreate
+from dnd.db.depend import get_db
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from db.user_crud import create_user,get_user_by_email
-from dependencies.jwt import token as jwts
+from dnd.db.user_crud import create_user,get_user_by_email
+from dnd.dependencies.jwt import token as jwts
 from fastapi.params import Query
-from db.depend_redis import get_redis
+from dnd.db.depend_redis import get_redis
 import redis.asyncio as redis
 
 
@@ -25,7 +25,6 @@ async def register_user(
         client_type: str = Query("web", description="web или mobile")  # Определяем тип клиента
 ):
     db_user =await create_user(db, user)
-
     if not db_user:
         raise HTTPException(status_code=400, detail="User creation failed")
 

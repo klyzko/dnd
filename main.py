@@ -1,19 +1,22 @@
 import os
 import sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 from dnd.db.depend_redis import lifespan
 from dnd.api import users
 from dnd.api import tasks
+from dnd.core.log_config import setup_logging
+
 
 # Добавляем корневую директорию проекта в sys.path
 # Это нужно для того, чтобы Python мог найти пакет 'app'
 # независимо от того, откуда запускается скрипт.
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+
 
 from fastapi import FastAPI
 #from dnd.model.tasks import Task
-#from dnd.repositories import user_registration
+#from dnd.bissneslogik import user_registration
 
 
 import uvicorn
@@ -26,6 +29,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 def start_app():
+    setup_logging()
     uvicorn.run(app='dnd.main:app', host="0.0.0.0", port=8000, reload=True)
 # Подключаем эндпоинты
 #app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])

@@ -13,6 +13,7 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
+    hero_name: str
     @field_validator('password')
     @classmethod
     def validate_and_hash_password(cls, v: str) -> str:
