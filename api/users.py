@@ -7,7 +7,7 @@ from dnd.dependencies.jwt import token as jwts
 from fastapi.params import Query
 from dnd.db.depend_redis import get_redis
 import redis.asyncio as redis
-
+from dnd.core.logger_config import logg
 
 
 
@@ -34,8 +34,8 @@ async def register_user(
 
         # Для веба - устанавливаем куки
         if client_type == "web":
-            await jwts.set_cookie(response, access_token, 'access_token')
-            await jwts.set_cookie(response, refresh_token, 'refresh_token')
+            await jwts.set_cookie(response, access_token, jwts.typs_token.access_token)
+            await jwts.set_cookie(response, refresh_token, jwts.typs_token.refresh_token)
             return status.HTTP_201_CREATED
 
         # Для мобилки - возвращаем токены в теле ответа
@@ -62,17 +62,16 @@ async def login(user: UserReqwest,
                 ):
     try:
         db_user = await get_user_by_email(db, user.email)
-        if not db_user:
-            raise HTTPException(status_code=404, detail="User not found")
-        if not db_user.verify_password(user.password,db_user.password):
-            raise HTTPException(status_code=404, detail="Incorrect password")
+        if not db_user or not db_user.check_password(user.password):
+            raise HTTPException(status_code=404, detail="User not found or incorrect password")
+
         access_token = await jwts.create_access_token(db_user.id)
         refresh_token = await jwts.create_refresh_token(db_user.id)
 
         # Для веба - устанавливаем куки
         if client_type == "web":
-            await jwts.set_cookie(response, access_token, 'access_token')
-            await jwts.set_cookie(response, refresh_token, 'refresh_token')
+            await jwts.set_cookie(response, access_token, jwts.typs_token.access_token)
+            await jwts.set_cookie(response, refresh_token, jwts.typs_token.refresh_token)
             return status.HTTP_201_CREATED
 
         # Для мобилки - возвращаем токены в теле ответа
@@ -93,7 +92,7 @@ async def login(user: UserReqwest,
 async def logout(
         response: Response,
         client_type: str = Query("web", description="web или mobile"),
-        token: str = Depends(jwts.get_token()),
+        token: str = Depends(jwts.get_token(jwts.typs_token.access_token)),
         token_refresh = Depends(jwts.get_token(jwts.typs_token.refresh_token)),
         red: redis.Redis = Depends(get_redis),
 

@@ -6,7 +6,7 @@ if project_root not in sys.path:
 from dnd.db.depend_redis import lifespan
 from dnd.api import users
 from dnd.api import tasks
-from dnd.core.log_config import setup_logging
+from dnd.core.logger_config import logg
 
 
 # Добавляем корневую директорию проекта в sys.path
@@ -29,8 +29,8 @@ app = FastAPI(
     lifespan=lifespan
 )
 def start_app():
-    setup_logging()
-    uvicorn.run(app='dnd.main:app', host="0.0.0.0", port=8000, reload=True)
+    logg
+    uvicorn.run(app='dnd.main:app', host="127.0.0.1", port=8000, reload=True)
 # Подключаем эндпоинты
 #app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
 #app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])

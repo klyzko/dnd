@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field,ConfigDict,EmailStr,field_validator
 from typing import List, Optional
-import bcrypt
+
 
 
 
@@ -20,10 +20,7 @@ class UserCreate(UserBase):
         """Валидация и хеширование пароля"""
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters')
-
-        salt = bcrypt.gensalt(rounds=12)
-        hashed = bcrypt.hashpw(v.encode('utf-8'), salt)
-        return hashed.decode('utf-8')
+        return v
 
 
 class UserReqwest(BaseModel):

@@ -4,13 +4,14 @@ from typing import List, Optional
 from datetime import datetime
 import uuid
 
-
-class Task(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description='id задачи')
+class Taskbase(BaseModel):
     name: str = Field(description="название задачи")
     date_start: str = Field(default_factory=lambda: datetime.now().strftime('%Y-%m-%d'))
     date_end: str
     description: str = Field(description="описание задачи")
+
+class Task(Taskbase):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()), description='id задачи')
     flag_ai: bool = Field(description="создана ли AI")
     subtasks: Optional[List[Task]] = Field(default_factory=list)  # Теперь работает!
 
@@ -32,3 +33,23 @@ class Task(BaseModel):
                 ]
             }
         }
+
+
+class Promttask(Taskbase):
+    """Модель для отправки в AI (без id, flag_ai, subtasks)"""
+
+    @classmethod
+    def from_task(cls, task: Task) -> 'Promttask':
+        """Создает Promttask из Task"""
+        return cls(
+            name=task.name,
+            date_start=task.date_start,
+            date_end=task.date_end,
+            description=task.description
+        )
+    def to_json(self) -> str:
+        """Преобразует в JSON строку для AI"""
+        return self.model_dump_json(ensure_ascii=False)
+
+class list_subtask(BaseModel):
+    subtask: Optional[list[Promttask]]

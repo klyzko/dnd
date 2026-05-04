@@ -3,6 +3,7 @@ from ..core.config import settings
 import json
 import asyncio
 from pathlib import Path
+from dnd.shemas.tasks import list_subtask
 
 
 
@@ -14,7 +15,7 @@ async def subtask(user_prompt:str,max_retries: int = 3):
      max_retries - максимальное количество попыток
     """
     client = OpenAI(api_key=settings.DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
-    file_path = Path(__file__).parent / 'promt' / 'subtask_system_prompt'
+    file_path = Path(__file__).parent.parent / 'promt' / 'subtask_system_prompt'
 
     with open(file_path, 'r', encoding='utf-8') as file:
         system_prompt = file.read()
@@ -51,7 +52,8 @@ async def subtask(user_prompt:str,max_retries: int = 3):
             # Проверяем структуру
             if 'subtask' in result:
                 print(f"Успешно распарсено! Получено {len(result['subtask'])} подзадач")
-                return result
+                sub_task = list_subtask.model_validate(result)
+                return sub_task
             else:
                 print(f"⚠Нет ключа 'subtask' в ответе. Получено: {list(result.keys())}")
                 if attempt == max_retries - 1:

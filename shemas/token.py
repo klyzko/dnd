@@ -4,13 +4,12 @@ from datetime import datetime,timezone
 from typing import  List, Optional
 
 class TokenType(str, Enum):
-    ACCESS = "access"
-    REFRESH = "refresh"
+    ACCESS = "access_token"
+    REFRESH = "refresh_token"
 
 class BaseToken(BaseModel):
     iss: str = Field(..., description="Издатель токена (UUID приложения)")
     sub: str = Field(..., description="Собственник токена (UUID пользователя)")
-    aud: List[str] = Field(..., description="Массив URL серверов, для которых предназначен токен")
     exp: datetime = Field(..., description="Время истечения токена")
     nbf: datetime = Field(..., description="Время, с которого токен считается валидным")
     iat: datetime = Field(..., description="Время создания токена")
@@ -51,14 +50,14 @@ class BaseToken(BaseModel):
 
 class AccessTokenPayload(BaseToken):
         """Структура Access токена"""
+        aud: List[str] = Field(..., description="Массив URL серверов, для которых предназначен токен")
         type: TokenType = TokenType.ACCESS
         roles: List[str] = Field(default=[], description="Роли пользователя")
-        permissions: List[str] = Field(default=[], description="Разрешения пользователя")
 
 
 class RefreshTokenPayload(BaseToken):
         """Структура Refresh токена - минимальный набор данных"""
         type: TokenType = TokenType.REFRESH
-        session_id: str = Field(..., description="ID сессии")
+
 
 

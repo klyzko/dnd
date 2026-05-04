@@ -8,7 +8,7 @@ from dnd.db.depend_redis import get_redis
 async def refresh_verifide_token(
                                  response:Response,
                                  red: redis.Redis = Depends(get_redis),
-                                 token:str = Depends(jwts.get_token()),
+                                 token:str = Depends(jwts.get_token(jwts.typs_token.refresh_token)),
                                  token_refresh:str = Depends(jwts.get_token(jwts.typs_token.refresh_token))
                                  ):
     if not token_refresh:

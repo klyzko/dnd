@@ -3,7 +3,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from dnd.db.base import Base
 from typing import Optional, List
 from dnd.model.user_roles import user_roles
-
+import bcrypt
 
 
 class User(Base):
@@ -18,4 +18,16 @@ class User(Base):
     tasks: Mapped[List["Task"]] = relationship("Task",back_populates="user",cascade="all, delete-orphan")
     roles: Mapped[List["Role"]] = relationship("Role",secondary=user_roles, back_populates="users")
 
+    def set_password(self, password: str):
+        """Хеширует пароль перед сохранением"""
+        salt = bcrypt.gensalt(rounds=12)
+        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+        self.password = hashed.decode('utf-8')
+
+    def check_password(self, password: str) -> bool:
+        """Проверяет введенный пароль с хешем"""
+        return bcrypt.checkpw(
+            password.encode('utf-8'),
+            self.password.encode('utf-8')
+        )
 

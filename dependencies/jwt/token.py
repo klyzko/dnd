@@ -1,21 +1,21 @@
 import uuid
 from jose import JWTError, jwt
 from dnd.db.depend import get_db
-from dnd.shemas.token import AccessTokenPayload
+from dnd.shemas.token import AccessTokenPayload,RefreshTokenPayload
 #from urllib3 import request
-
+from jose.exceptions import JWTError, ExpiredSignatureError
 #from model.users import User
 from datetime import datetime,timedelta,timezone
 from dnd.db.user_crud import get_user_rolepermissions
 from dnd.core.config import settings
-from fastapi import HTTPException,Depends,Request,Response,Header
+from fastapi import HTTPException,Depends,Request,Response,Header,status
 from typing import Optional
 from dnd.core.setting import oauth2_scheme
 import redis.asyncio as redis
 import time
 import enum
 #from db.depend_redis import get_redis
-
+from dnd.core.logger_config import logg
 
 class typs_token(enum.Enum):
     access_token = 'access_token'
@@ -50,18 +50,18 @@ async def create_access_token(id):
     jti = create_jti()
     resurs=[]
     for roles in user.roles:
-        for perm in roles.permissions:
+        for perm in roles.permision:
             resurs.append(perm.resource)
     # Стандартные поля payload
     payload = AccessTokenPayload(
         iss="to-dodnd",  # Издатель токена
-        sub=user.user_id,  # Собственник токена (UUID пользователя)
+        sub=str(user.id),  # Собственник токена (UUID пользователя)
         aud=resurs,  # Целевые серверы
         exp=expire,  # Время истечения
         nbf=now,  # Время начала действия
         iat=now,  # Время создания
         jti=jti,  # Уникальный ID токена
-        roles=user.roles,  # Кастомные данные
+        roles=[role.name_role for role in user.roles],  # Кастомные данные
     )
 
     # Создаем JWT токен
@@ -98,9 +98,9 @@ async def create_refresh_token(id):
     expire = now + timedelta(minutes=REFRESH_TOKEN_EXPIRE_MINUTES)
     jti = create_jti()
     # Стандартные поля payload
-    payload = AccessTokenPayload(
+    payload = RefreshTokenPayload(
         iss="to-dodnd",  # Издатель токена
-        sub=user.user_id,  # Собственник токена (UUID пользователя)
+        sub=str(user.id),  # Собственник токена (UUID пользователя)
         exp=expire,  # Время истечения
         nbf=now,  # Время начала действия
         iat=now,  # Время создания
@@ -133,14 +133,38 @@ async def get_blacklist_token(jti,red: redis.Redis ):
     return await red.get(jti) is not None
 
 
-async def verify_token(token:str):
+async def verify_token(token: str):
     try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        if payload['exp'] < datetime.now(timezone.utc).timestamp():
-            return None
+        payload = jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=[settings.algorithm]
+        )
         return payload
-    except JWTError:
-
+    except ExpiredSignatureError as e:
+        print(f"Токен просрочен: {e}")
+        return None
+    except JWTError as e:
+        print(f"JWT ошибка: {e}")
+        print(f"Тип ошибки: {type(e).__name__}")
+        # Выводим больше деталей об ошибке
+        if "Subject must be a string" in str(e):
+            # Декодируем без верификации, чтобы посмотреть что внутри
+            try:
+                import base64
+                import json
+                parts = token.split('.')
+                if len(parts) == 3:
+                    payload_b64 = parts[1]
+                    payload_b64 += '=' * (4 - len(payload_b64) % 4)
+                    payload_json = base64.urlsafe_b64decode(payload_b64)
+                    payload_dict = json.loads(payload_json)
+                    print(f"Реальный sub в токене: {payload_dict.get('sub')} (тип: {type(payload_dict.get('sub')).__name__})")
+            except:
+                pass
+        return None
+    except Exception as e:
+        print(f"Неизвестная ошибка: {e}")
         return None
 
 
@@ -184,7 +208,11 @@ def get_token(token_type: typs_token = typs_token.access_token):
         if cookie_token and cookie_token.startswith("Bearer "):
             return cookie_token[7:]
 
-        return None
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Token '{token_type}' not found in Authorization header or cookie",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     return _get_token
 

@@ -1,5 +1,5 @@
 from openai import OpenAI
-from scripts.regsetup import description
+
 
 from ..core.config import settings
 import json
@@ -56,22 +56,23 @@ async def dndtask(user_prompt:str,max_retries: int = 3):
             # Проверяем структуру
             if 'Mission' in result:
                 logg.info(f"Успешно распарсено! Получено {len(result['Mission'])} подзадач")
+                logg.info(f"Полученные подзадачи: {result['Mission']}")
                 qwest = Mission.model_validate(result.get('Mission'))
                 return qwest
             else:
                 logg.error(f"⚠Нет ключа 'Mission' в ответе. Получено: {list(result.keys())}")
                 if attempt == max_retries - 1:
-                    return {"Mission": []}
+                    return None
 
         except json.JSONDecodeError as e:
             logg.error(f"Ошибка парсинга JSON (попытка {attempt + 1}): {e}")
             logg.error(f"Проблемный контент: {content[:200]}...")
             if attempt == max_retries - 1:
-                return {"Mission": []}
+                return None
 
         except Exception as e:
             logg.error(f"Ошибка API (попытка {attempt + 1}): {e}")
             if attempt == max_retries - 1:
-                return {"Mission": []}
+                return None
 
-    return {"Mission": []}
+    return None
