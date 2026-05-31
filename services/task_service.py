@@ -1,14 +1,11 @@
 from openai import OpenAI
 
 
-from ..core.config import settings
+from core.config import settings
 import json
-import asyncio
 from pathlib import Path
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from ..model.tasks import Task
-from dnd.shemas.taskqwestionai import Mission
-from dnd.core.logger_config import logg
+from api.v1.shemas.taskqwestionai import Mission
+from core.logger_config import logg
 
 
 
@@ -76,3 +73,4 @@ async def dndtask(user_prompt:str,max_retries: int = 3):
                 return None
 
     return None
+

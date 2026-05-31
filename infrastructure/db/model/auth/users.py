@@ -1,0 +1,33 @@
+from sqlalchemy import String, Boolean
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from infrastructure.db.model.core.base import Base
+from typing import Optional, List
+from infrastructure.db.model.auth.user_roles import user_roles
+import bcrypt
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    password: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    hero: Mapped[Optional["Hero"]] = relationship('Hero',back_populates="user", uselist=False)
+    tasks: Mapped[List["Task"]] = relationship("Task",back_populates="user",cascade="all, delete-orphan")
+    roles: Mapped[List["Role"]] = relationship("Role",secondary=user_roles, back_populates="users")
+
+    def set_password(self, password: str):
+        """Хеширует пароль перед сохранением"""
+        salt = bcrypt.gensalt(rounds=12)
+        hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+        self.password = hashed.decode('utf-8')
+
+    def check_password(self, password: str) -> bool:
+        """Проверяет введенный пароль с хешем"""
+        return bcrypt.checkpw(
+            password.encode('utf-8'),
+            self.password.encode('utf-8')
+        )
+

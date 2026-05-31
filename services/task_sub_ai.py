@@ -1,9 +1,8 @@
 from openai import OpenAI
-from ..core.config import settings
+from core.config import settings
 import json
-import asyncio
 from pathlib import Path
-from dnd.shemas.tasks import list_subtask
+from api.v1.shemas.tasks import list_subtask
 
 
 
